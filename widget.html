@@ -27,7 +27,6 @@
             margin-top: 0;
         }
         
-        /* Sélecteur de caisse */
         .caisse-selector {
             background: #fff3cd;
             padding: 15px;
@@ -49,7 +48,6 @@
             min-width: 200px;
         }
         
-        /* Totaux globaux */
         .totaux {
             background: #e3f2fd;
             padding: 15px;
@@ -67,7 +65,6 @@
             margin: 8px 0;
         }
         
-        /* Cartes entités */
         .entites-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -98,7 +95,6 @@
             margin: 5px 0;
         }
         
-        /* Commentaires */
         .comment-label {
             font-weight: bold;
             margin-bottom: 5px;
@@ -123,7 +119,6 @@
             border-radius: 4px;
         }
         
-        /* Boutons */
         .btn-container {
             margin-top: 20px;
             text-align: right;
@@ -149,7 +144,6 @@
             cursor: not-allowed;
         }
         
-        /* Messages */
         .message {
             padding: 12px;
             margin: 15px 0;
@@ -175,7 +169,6 @@
             border: 1px solid #bee5eb;
         }
         
-        /* Loading spinner */
         .spinner {
             border: 3px solid #f3f3f3;
             border-top: 3px solid #4CAF50;
@@ -191,210 +184,107 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        .debug-info {
+            background: #f0f0f0;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            font-family: monospace;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>🔍 Contrôle Caisse Site</h2>
         
-        <!-- Message de statut -->
         <div id="message" class="message"></div>
         
-        <!-- Sélecteur de caisse -->
+        <div class="debug-info" id="debugInfo">
+            <strong>Debug:</strong> Initialisation en cours...
+        </div>
+        
         <div class="caisse-selector">
             <label for="caisseSelect">📌 Sélectionner une caisse :</label>
             <select id="caisseSelect">
-                <option value="">Chargement...</option>
+                <option value="">En attente du SDK...</option>
             </select>
         </div>
         
-        <!-- Totaux globaux -->
         <div class="totaux" id="totaux">
             <h3>📊 Totaux Globaux</h3>
-            <p>Chargement des données...</p>
+            <p>En attente du chargement...</p>
         </div>
         
-        <!-- Détails par entité -->
         <h3>📋 Détails Par Entité</h3>
         <div class="entites-container" id="entitesContainer">
             <p>Chargement...</p>
         </div>
         
-        <!-- Commentaire global -->
         <div class="comment-global">
             <label class="comment-label">💬 Commentaire Global Contrôle Site :</label>
-            <textarea id="commentGlobal" rows="4" placeholder="Saisissez un commentaire global sur ce contrôle..."></textarea>
+            <textarea id="commentGlobal" rows="4" placeholder="Saisissez un commentaire global..."></textarea>
         </div>
         
-        <!-- Bouton de sauvegarde -->
         <div class="btn-container">
             <button id="btnSauvegarder" class="btn-sauvegarder">💾 SAUVEGARDER TOUS LES COMMENTAIRES</button>
         </div>
     </div>
 
-    <!-- SDK Zoho Creator -->
-    <script src="https://js.zohostatic.com/creator/widgets/version/2.0/widgetsdk-min.js"></script>
-    
-    <!-- Notre JavaScript -->
     <script>
-        // Configuration
-        const APP_NAME = "one-process";
-        const REPORT_NAME = "All_Caisses_sites";
-        const FORM_NAME = "Caisses_sites";
+        // Pour les widgets externes, pas de script tag pour le SDK
+        // Zoho l'injecte automatiquement
         
-        let currentCaisseID = null;
-        let caisseData = null;
-        let entitesData = [];
+        const debugInfo = document.getElementById('debugInfo');
         
-        // Initialisation
-        ZOHO.CREATOR.init().then(function() {
-            console.log("✅ Widget initialisé !");
-            chargerListeCaisses();
-        }).catch(function(error) {
-            afficherMessage("Erreur d'initialisation : " + error, "error");
-            console.error("Erreur init:", error);
-        });
-        
-        // Charger la liste des caisses
-        function chargerListeCaisses() {
-            const config = {
-                appName: APP_NAME,
-                reportName: REPORT_NAME,
-                page: 1,
-                pageSize: 200
-            };
-            
-            ZOHO.CREATOR.API.getAllRecords(config).then(function(response) {
-                const caisses = response.data;
-                const select = document.getElementById('caisseSelect');
-                select.innerHTML = '<option value="">-- Sélectionnez une caisse --</option>';
-                
-                caisses.forEach(function(caisse) {
-                    const option = document.createElement('option');
-                    option.value = caisse.ID;
-                    option.textContent = caisse.Nom_Caisse_Site || 'Caisse #' + caisse.ID;
-                    select.appendChild(option);
-                });
-                
-                // Événement changement de caisse
-                select.addEventListener('change', function() {
-                    if (this.value) {
-                        chargerDonneesCaisse(this.value);
-                    }
-                });
-                
-            }).catch(function(error) {
-                afficherMessage("Erreur chargement caisses : " + error, "error");
-                console.error("Erreur:", error);
-            });
+        function updateDebug(message) {
+            debugInfo.innerHTML += '<br>' + message;
+            console.log(message);
         }
         
-        // Charger les données d'une caisse
-        function chargerDonneesCaisse(caisseID) {
-            afficherMessage("Chargement des données...", "loading");
-            currentCaisseID = caisseID;
+        updateDebug('Script chargé');
+        updateDebug('Type de window.ZOHO: ' + typeof window.ZOHO);
+        updateDebug('Type de parent.ZOHO: ' + typeof parent.ZOHO);
+        
+        // Attendre que ZOHO soit disponible
+        let attempts = 0;
+        const maxAttempts = 50;
+        
+        function waitForZoho() {
+            attempts++;
+            updateDebug('Tentative ' + attempts + ' de détection du SDK...');
             
-            const config = {
-                appName: APP_NAME,
-                reportName: REPORT_NAME,
-                id: caisseID
-            };
-            
-            ZOHO.CREATOR.API.getRecordById(config).then(function(response) {
-                caisseData = response.data;
-                afficherDonnees();
-                afficherMessage("", "");
-            }).catch(function(error) {
-                afficherMessage("Erreur chargement données : " + error, "error");
-                console.error("Erreur:", error);
-            });
+            if (typeof ZOHO !== 'undefined' && ZOHO.CREATOR) {
+                updateDebug('✅ SDK ZOHO détecté !');
+                initWidget();
+            } else if (attempts < maxAttempts) {
+                setTimeout(waitForZoho, 200);
+            } else {
+                updateDebug('❌ SDK ZOHO non disponible après ' + maxAttempts + ' tentatives');
+                afficherMessage('Erreur: SDK Zoho Creator non disponible', 'error');
+            }
         }
         
-        // Afficher les données
-        function afficherDonnees() {
-            // Totaux globaux
+        // Démarrer la détection
+        waitForZoho();
+        
+        function initWidget() {
+            updateDebug('Initialisation du widget...');
+            
+            // Test simple : afficher un message statique
             document.getElementById('totaux').innerHTML = `
                 <h3>📊 Totaux Globaux</h3>
-                <p><strong>Total Décla:</strong> ${caisseData.TOTAL_DECLA_SITE || 0} €</p>
-                <p><strong>Total DC:</strong> ${caisseData.TOTAL_SITE_DC || 0} €</p>
-                <p><strong>Écart:</strong> ${caisseData.ECART_SITE_DECLA_VS_DC || 0} €</p>
+                <p><strong>SDK Zoho détecté !</strong></p>
+                <p>Version du SDK disponible</p>
             `;
             
-            // Commentaire global existant
-            document.getElementById('commentGlobal').value = caisseData.Commentaire_Controle_Site || '';
+            document.getElementById('caisseSelect').innerHTML = 
+                '<option value="">SDK chargé - Configuration en cours...</option>';
             
-            // Détails par entité
-            entitesData = caisseData.Detail_Par_Entite || [];
-            const container = document.getElementById('entitesContainer');
-            
-            if (entitesData.length === 0) {
-                container.innerHTML = '<p>Aucune entité trouvée</p>';
-                return;
-            }
-            
-            container.innerHTML = '';
-            entitesData.forEach(function(detail, index) {
-                const nomEntite = detail.Entite ? detail.Entite.display_value : 'Entité inconnue';
-                const card = document.createElement('div');
-                card.className = 'entite-card';
-                card.innerHTML = `
-                    <h4>${nomEntite}</h4>
-                    <div class="stats">
-                        <p><strong>CB Décla:</strong> ${detail.DECLA_SITE_TOTAL_TPE || 0} €</p>
-                        <p><strong>DC CB:</strong> ${detail.DC_ENCAISSEMENT_CB_TOTAL || 0} €</p>
-                        <p><strong>Écart:</strong> ${detail.ECART_DECLA_TPE_VS_DC_CB || 0} €</p>
-                    </div>
-                    <label class="comment-label">💬 Commentaire :</label>
-                    <textarea id="comment_${index}" rows="3" placeholder="Commentaire pour ${nomEntite}...">${detail.Commentaire_CB_vs_DC || ''}</textarea>
-                `;
-                container.appendChild(card);
-            });
+            afficherMessage('✅ Widget initialisé avec succès !', 'success');
         }
         
-        // Sauvegarder
-        document.getElementById('btnSauvegarder').addEventListener('click', function() {
-            if (!currentCaisseID) {
-                afficherMessage("Veuillez sélectionner une caisse", "error");
-                return;
-            }
-            
-            // Collecter tous les commentaires
-            const commentaires = {
-                global: document.getElementById('commentGlobal').value,
-                entites: []
-            };
-            
-            entitesData.forEach(function(detail, index) {
-                const textarea = document.getElementById('comment_' + index);
-                if (textarea) {
-                    commentaires.entites.push({
-                        nomEntite: detail.Entite ? detail.Entite.display_value : '',
-                        commentaire: textarea.value,
-                        detailOriginal: detail
-                    });
-                }
-            });
-            
-            // Désactiver le bouton
-            const btn = document.getElementById('btnSauvegarder');
-            btn.disabled = true;
-            btn.textContent = '⏳ Sauvegarde en cours...';
-            
-            afficherMessage("Sauvegarde en cours...", "loading");
-            
-            // TODO: Appeler une fonction Deluge standalone
-            // Pour l'instant, on fait un simple console.log
-            console.log("Données à sauvegarder:", commentaires);
-            
-            // Simuler une sauvegarde (À REMPLACER par l'appel réel)
-            setTimeout(function() {
-                afficherMessage("✅ Commentaires sauvegardés avec succès !", "success");
-                btn.disabled = false;
-                btn.textContent = '💾 SAUVEGARDER TOUS LES COMMENTAIRES';
-            }, 1000);
-        });
-        
-        // Afficher un message
         function afficherMessage(texte, type) {
             const messageDiv = document.getElementById('message');
             if (!texte) {
